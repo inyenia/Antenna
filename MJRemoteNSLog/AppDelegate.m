@@ -15,7 +15,7 @@
 {
     // Override point for customization after application launch.
 	
-	[[MJRemoteNSLog sharedLogger] addChannelWithURL:[NSURL URLWithString:@"http://localhost:5000"] method:@"LOG"];
+	[[MJRemoteNSLog sharedLogger] addChannelWithURL:[NSURL URLWithString:@"http://192.168.0.6:5000"] method:@"LOG"];
     
 	[[MJRemoteNSLog sharedLogger] startLoggingApplicationLifecycleNotifications];
     [[MJRemoteNSLog sharedLogger] startLoggingNotificationName:MJRemoteNSLogExampleNotification];

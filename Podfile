@@ -1,6 +1,6 @@
-platform :ios, '7.0'
+platform :ios, '6.0'
 
 # ignore all warnings from all pods
 inhibit_all_warnings!
 
-pod 'AFNetworking', '1.3.4'
+pod 'AFNetworking', '2.0.1'

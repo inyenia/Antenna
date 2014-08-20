@@ -9,6 +9,7 @@ When paired with [rack-http-logger](https://github.com/mattt/rack-http-logger), 
 
 > This project is part of a series of open source libraries covering the mission-critical aspects of an iOS app's infrastructure. Be sure to check out its sister projects: [GroundControl](https://github.com/mattt/GroundControl), [SkyLab](https://github.com/mattt/SkyLab), [CargoBay](https://github.com/mattt/CargoBay), [houston](https://github.com/mattt/houston), [Orbiter](https://github.com/mattt/Orbiter) and [ExtendNSLog](https://github.com/ben46/ExtendNSLog)
 
+### [Histórico de cambios y versiones](History.md)
 
 ### AppDelegate.m
 

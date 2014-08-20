@@ -8,7 +8,7 @@
 
 #import <UIKit/UIKit.h>
 
-extern NSString * const MJRemoteNSLogExampleNotification;
+#define MJRemoteNSLogExampleNotification @"MJRemoteNSLogExampleNotification"
 
 @interface ViewController : UIViewController
 

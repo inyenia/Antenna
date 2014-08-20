@@ -309,7 +309,6 @@ inManagedObjectContext:(NSManagedObjectContext *)context;
 
 @interface MJRemoteNSLogHTTPChannel ()
 @property (readwrite, nonatomic, strong) NSURL *URL;
-@property (readwrite, nonatomic, strong) AFHTTPClient *HTTPClient;
 @property (readwrite, nonatomic, copy) NSString *method;
 @property (readwrite, nonatomic, strong) AFHTTPRequestSerializer <AFURLRequestSerialization> * requestSerializer;
 @property (readwrite, nonatomic, strong) NSOperationQueue *operationQueue;
