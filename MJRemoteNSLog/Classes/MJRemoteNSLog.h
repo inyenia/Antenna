@@ -22,12 +22,23 @@
 
 #import <Foundation/Foundation.h>
 
-@protocol AntennaChannel;
+#ifdef DEBUG
+#define NSLog(args...) ExtendNSLog(__FILE__,__LINE__,__PRETTY_FUNCTION__,args);
+#else
+#define NSLog(x...)
+#endif
+
+/**
+ Show NSLog in remote server.
+ */
+void ExtendNSLog(const char *file, int lineNumber, const char *functionName, NSString *format, ...);
+
+@protocol MJRemoteNSLogChannel;
 
 /**
  Antenna objects asynchronously log notifications to subscribed channels, such as web services, files, or Core Data entities. Each logging message comes with global state information, including a unique identifier for the device, along with any additional data from the notification itself.
  */
-@interface Antenna : NSObject
+@interface MJRemoteNSLog : NSObject
 
 /**
  The currently active channels.
@@ -96,14 +107,14 @@
  
  @param channel The channel to add.
  */
-- (void)addChannel:(id <AntennaChannel>)channel;
+- (void)addChannel:(id <MJRemoteNSLogChannel>)channel;
 
 /**
  Removes the specified channel, if present.
  
  @param channel The channel to remove.
  */
-- (void)removeChannel:(id <AntennaChannel>)channel;
+- (void)removeChannel:(id <MJRemoteNSLogChannel>)channel;
 
 /**
  Removes all channels.
@@ -178,6 +189,7 @@
  */
 - (void)stopLoggingAllNotifications;
 
+
 @end
 
 #pragma mark -
@@ -185,7 +197,7 @@
 /**
  The AntennaChannel protocol defines the required methods for objects that can be added as channels by Antenna.
  */
-@protocol AntennaChannel <NSObject>
+@protocol MJRemoteNSLogChannel <NSObject>
 
 @required
 
