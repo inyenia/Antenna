@@ -20,14 +20,44 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#import "Antenna.h"
+#import "MJRemoteNSLog.h"
 
 #import "AFHTTPClient.h"
 #import "AFHTTPRequestOperation.h"
 
 #import <CoreData/CoreData.h>
 
-static NSString * AntennaLogLineFromPayload(NSDictionary *payload) {
+void ExtendNSLog(const char *file, int lineNumber, const char *functionName, NSString *format, ...)
+{
+    // Type to hold information about variable arguments.
+    va_list ap;
+    
+    // Initialize a variable argument list.
+    va_start (ap, format);
+    
+    // NSLog only adds a newline to the end of the NSLog format if
+    // one is not already there.
+    // Here we are utilizing this feature of NSLog()
+    if (![format hasSuffix: @"\n"])
+    {
+        format = [format stringByAppendingString: @"\n"];
+    }
+    
+    NSString *body = [[NSString alloc] initWithFormat:format arguments:ap];
+    
+    // End using variable argument list.
+    va_end (ap);
+    
+    NSString *fileName = [[NSString stringWithUTF8String:file] lastPathComponent];
+	NSString *msg = [NSString stringWithFormat:@"[%s:%d] %s" ,[fileName UTF8String], lineNumber, [body UTF8String]];
+    
+	[[MJRemoteNSLog sharedLogger] log:msg];
+	
+	fprintf(stderr, "MJRemoteNSLog -- %s", [msg UTF8String]);
+	
+}
+
+static NSString * MJRemoteNSLogLineFromPayload(NSDictionary *payload) {
     NSMutableArray *mutableComponents = [NSMutableArray arrayWithCapacity:[payload count]];
     [payload enumerateKeysAndObjectsUsingBlock:^(id key, id obj, __unused BOOL *stop) {
         [mutableComponents addObject:[NSString stringWithFormat:@"\"%@\"=\"%@\"", key, obj]];
@@ -36,17 +66,17 @@ static NSString * AntennaLogLineFromPayload(NSDictionary *payload) {
     return [mutableComponents componentsJoinedByString:@" "];
 }
 
-@interface AntennaStreamChannel : NSObject <AntennaChannel>
+@interface MJRemoteNSLogStreamChannel : NSObject <MJRemoteNSLogChannel>
 - (id)initWithOutputStream:(NSOutputStream *)outputStream;
 @end
 
-@interface AntennaHTTPChannel : NSObject <AntennaChannel>
+@interface MJRemoteNSLogHTTPChannel : NSObject <MJRemoteNSLogChannel>
 - (id)initWithURL:(NSURL *)url
            method:(NSString *)method;
 @end
 
 #ifdef _COREDATADEFINES_H
-@interface AntennaCoreDataChannel : NSObject <AntennaChannel>
+@interface MJRemoteNSLogCoreDataChannel : NSObject <MJRemoteNSLogChannel>
 - (id)initWithEntity:(NSEntityDescription *)entity
     messageAttribute:(NSAttributeDescription *)messageAttribute
   timestampAttribute:(NSAttributeDescription *)timestampAttribute
@@ -56,13 +86,13 @@ inManagedObjectContext:(NSManagedObjectContext *)context;
 
 #pragma mark -
 
-@interface Antenna ()
+@interface MJRemoteNSLog ()
 @property (readwrite, nonatomic, strong) NSArray *channels;
 @property (readwrite, nonatomic, strong) NSMutableDictionary *defaultPayload;
 @property (readwrite, nonatomic, strong) NSOperationQueue *operationQueue;
 @end
 
-@implementation Antenna
+@implementation MJRemoteNSLog
 
 + (instancetype)sharedLogger {
     static id _sharedAntenna = nil;
@@ -102,14 +132,14 @@ inManagedObjectContext:(NSManagedObjectContext *)context;
 }
 
 - (void)addChannelWithOutputStream:(NSOutputStream *)outputStream {
-    AntennaStreamChannel *channel = [[AntennaStreamChannel alloc] initWithOutputStream:outputStream];
+    MJRemoteNSLogStreamChannel *channel = [[MJRemoteNSLogStreamChannel alloc] initWithOutputStream:outputStream];
     [self addChannel:channel];
 }
 
 - (void)addChannelWithURL:(NSURL *)URL
                    method:(NSString *)method
 {
-    AntennaHTTPChannel *channel = [[AntennaHTTPChannel alloc] initWithURL:URL method:method];
+    MJRemoteNSLogHTTPChannel *channel = [[MJRemoteNSLogHTTPChannel alloc] initWithURL:URL method:method];
     [self addChannel:channel];
 }
 
@@ -119,16 +149,16 @@ inManagedObjectContext:(NSManagedObjectContext *)context;
           timestampAttribute:(NSAttributeDescription *)timestampAttribute
       inManagedObjectContext:(NSManagedObjectContext *)context
 {
-    AntennaCoreDataChannel *channel = [[AntennaCoreDataChannel alloc] initWithEntity:entity messageAttribute:messageAttribute timestampAttribute:timestampAttribute inManagedObjectContext:context];
+    MJRemoteNSLogCoreDataChannel *channel = [[MJRemoteNSLogCoreDataChannel alloc] initWithEntity:entity messageAttribute:messageAttribute timestampAttribute:timestampAttribute inManagedObjectContext:context];
     [self addChannel:channel];
 }
 #endif
 
-- (void)addChannel:(id <AntennaChannel>)channel {
+- (void)addChannel:(id <MJRemoteNSLogChannel>)channel {
     self.channels = [self.channels arrayByAddingObject:channel];
 }
 
-- (void)removeChannel:(id <AntennaChannel>)channel {
+- (void)removeChannel:(id <MJRemoteNSLogChannel>)channel {
     NSMutableArray *mutableChannels = [NSMutableArray arrayWithArray:self.channels];
     if ([channel respondsToSelector:@selector(prepareForRemoval)]) {
         [channel prepareForRemoval];
@@ -153,15 +183,14 @@ inManagedObjectContext:(NSManagedObjectContext *)context;
     NSMutableDictionary *mutablePayload = nil;
     if ([messageOrPayload isKindOfClass:[NSDictionary class]]) {
         mutablePayload = [messageOrPayload mutableCopy];
+		[self.defaultPayload enumerateKeysAndObjectsUsingBlock:^(id key, id obj, __unused BOOL *stop) {
+			if (obj && ![mutablePayload valueForKey:key]) {
+				[mutablePayload setObject:obj forKey:key];
+			}
+		}];
     } else if (messageOrPayload) {
         mutablePayload = [NSMutableDictionary dictionaryWithObject:messageOrPayload forKey:@"message"];
     }
-
-    [self.defaultPayload enumerateKeysAndObjectsUsingBlock:^(id key, id obj, __unused BOOL *stop) {
-        if (obj && ![mutablePayload valueForKey:key]) {
-            [mutablePayload setObject:obj forKey:key];
-        }
-    }];
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wstrict-selector-match"
@@ -237,15 +266,17 @@ inManagedObjectContext:(NSManagedObjectContext *)context;
     [self.notificationCenter removeObserver:self];
 }
 
+
+
 @end
 
 #pragma mark -
 
-@interface AntennaStreamChannel ()
+@interface MJRemoteNSLogStreamChannel ()
 @property (readwrite, nonatomic, strong) NSOutputStream *outputStream;
 @end
 
-@implementation AntennaStreamChannel
+@implementation MJRemoteNSLogStreamChannel
 
 - (id)initWithOutputStream:(NSOutputStream *)outputStream {
     self = [super init];
@@ -263,7 +294,7 @@ inManagedObjectContext:(NSManagedObjectContext *)context;
 #pragma mark - AntennaChannel
 
 - (void)log:(NSDictionary *)payload {
-    NSData *data = [AntennaLogLineFromPayload(payload) dataUsingEncoding:NSUTF8StringEncoding];
+    NSData *data = [MJRemoteNSLogLineFromPayload(payload) dataUsingEncoding:NSUTF8StringEncoding];
     [self.outputStream write:[data bytes] maxLength:[data length]];
 }
 
@@ -275,12 +306,12 @@ inManagedObjectContext:(NSManagedObjectContext *)context;
 
 #pragma mark -
 
-@interface AntennaHTTPChannel ()
+@interface MJRemoteNSLogHTTPChannel ()
 @property (readwrite, nonatomic, strong) AFHTTPClient *HTTPClient;
 @property (readwrite, nonatomic, copy) NSString *method;
 @end
 
-@implementation AntennaHTTPChannel
+@implementation MJRemoteNSLogHTTPChannel
 
 - (id)initWithURL:(NSURL *)url
            method:(NSString *)method
@@ -308,14 +339,14 @@ inManagedObjectContext:(NSManagedObjectContext *)context;
 @end
 
 #ifdef _COREDATADEFINES_H
-@interface AntennaCoreDataChannel ()
+@interface MJRemoteNSLogCoreDataChannel ()
 @property (readwrite, nonatomic, strong) NSEntityDescription *entity;
 @property (readwrite, nonatomic, strong) NSManagedObjectContext *context;
 @property (readwrite, nonatomic, strong) NSAttributeDescription *messageAttribute;
 @property (readwrite, nonatomic, strong) NSAttributeDescription *timestampAttribute;
 @end
 
-@implementation AntennaCoreDataChannel
+@implementation MJRemoteNSLogCoreDataChannel
 
 - (id)initWithEntity:(NSEntityDescription *)entity
     messageAttribute:(NSAttributeDescription *)messageAttribute
@@ -340,7 +371,7 @@ inManagedObjectContext:(NSManagedObjectContext *)context
 - (void)log:(NSDictionary *)payload {
     [self.context performBlock:^{
         NSManagedObjectContext *entry = [NSEntityDescription insertNewObjectForEntityForName:self.entity.name inManagedObjectContext:self.context];
-        [entry setValue:AntennaLogLineFromPayload(payload) forKey:self.messageAttribute.name];
+        [entry setValue:MJRemoteNSLogLineFromPayload(payload) forKey:self.messageAttribute.name];
         [entry setValue:[NSDate date] forKey:self.timestampAttribute.name];
 
         NSError *error = nil;
