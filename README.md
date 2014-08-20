@@ -32,4 +32,4 @@ When paired with [rack-http-logger](https://github.com/mattt/rack-http-logger), 
 
 MJRemoteNSLog is available under the MIT license. See the LICENSE file for more info.
 
-##### A fork of https://github.com/mattt/Antenna
+##### Forked from https://github.com/mattt/Antenna
