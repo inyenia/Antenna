@@ -2,6 +2,9 @@
 2.0.1 / 2014-08-20
 ==================
 
+  * fix errors in refactor
+  * change version
+  * add changelog
   * update readme
   * prepare for version 2.0.1
   * Merge branch 'AFNetworking-1.3.X'
